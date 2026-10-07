@@ -1,0 +1,16 @@
+# Keep workstation credentials and runtime data out of this public repository.
+config.json
+**/config.json
+*.private.json
+.env
+.env.*
+.dev.vars
+.local/
+*.zip
+*.log
+logs/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.DS_Store

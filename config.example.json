@@ -1,0 +1,8 @@
+{
+  "api_url": "https://monitor.example.org",
+  "hostname": "EXAMPLE-PC",
+  "api_token": "REPLACE_WITH_THE_PRIVATE_PER_MACHINE_TOKEN",
+  "heartbeat_seconds": 60,
+  "collect_username": false,
+  "allow_local_http": false
+}
