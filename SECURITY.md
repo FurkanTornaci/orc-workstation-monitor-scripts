@@ -2,11 +2,13 @@
 
 ## Public source boundary
 
-This is a source-only publication with fresh Git history. It contains selected monitoring and Windows setup scripts, a synthetic example configuration and unit tests. It contains no real workstation configuration, enrolment tokens, production server address, workstation inventory, private setup archives, deployment configuration or operational logs.
+This is a source-only publication with fresh Git history. It contains selected monitoring and Windows setup scripts, a synthetic example configuration and tests. It contains no real workstation configuration, enrolment tokens, workstation inventory, private setup archives, deployment configuration or operational logs. The public monitoring server origin is intentionally included so the same installer needs only an assigned API key on each PC.
 
 Before publishing, the selected files were reviewed and checked against locally provisioned credentials. Future updates should receive the same review. `.gitignore` helps prevent accidental commits; it is not a substitute for reviewing staged files.
 
-Do not add a real `config.json`, private setup ZIP, API token or screenshot containing credentials to GitHub. Send the private configuration through an approved private channel. The public example cannot authenticate to a server.
+Do not add a real `config.json`, private setup ZIP, API token or screenshot containing credentials to GitHub. Send workstation keys through an approved private channel. The public example cannot authenticate to a server.
+
+The `-ApiKey` parameter accepts a PowerShell `SecureString`. Supply it with `Read-Host -AsSecureString` or an IT credential store, so a literal key does not enter shell history or a process command line. In the double-click workflow, hidden input happens after administrator elevation. The installer creates the private configuration locally; no private file has to be included in the shared source ZIP. Malformed keys, JSON and unsafe configuration are rejected before changing the machine. Error messages do not include the key or private JSON fragments.
 
 ## Runtime privileges
 

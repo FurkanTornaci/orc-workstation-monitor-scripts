@@ -1,9 +1,14 @@
 #Requires -Version 5.1
 #Requires -RunAsAdministrator
-[CmdletBinding()]
+[CmdletBinding(DefaultParameterSetName = 'ApiKey')]
 param(
+  [Parameter(Mandatory = $true, ParameterSetName = 'ConfigFile')]
   [string]$ConfigPath,
+  [Parameter(ParameterSetName = 'ApiKey')]
+  [Security.SecureString]$ApiKey,
+  [Parameter(ParameterSetName = 'ApiKey')]
   [string]$ApiUrl,
+  [Parameter(ParameterSetName = 'ApiKey')]
   [string]$Hostname = $env:COMPUTERNAME,
   [string]$PythonPath,
   [switch]$HideUsername
@@ -12,6 +17,18 @@ $ErrorActionPreference = 'Stop'
 $InstallDir = Join-Path $env:ProgramData 'StrathclydeWorkstationMonitor'
 $TaskName = 'StrathclydeWorkstationMonitor'
 $AgentSource = Split-Path $PSScriptRoot -Parent
+
+. (Join-Path $PSScriptRoot 'configuration.ps1')
+$ConfigurationParameters = @{ HideUsername = $HideUsername }
+foreach ($Name in @('ConfigPath', 'ApiKey', 'ApiUrl', 'Hostname')) {
+  if ($PSBoundParameters.ContainsKey($Name)) { $ConfigurationParameters[$Name] = $PSBoundParameters[$Name] }
+}
+# Reject malformed keys/configuration before stopping a task or changing the machine.
+$Configuration = Resolve-WorkstationConfiguration @ConfigurationParameters
+$EnrollmentName = [string]$Configuration.hostname
+$ConfigurationParameters = $null
+$ApiKey = $null
+[void]$PSBoundParameters.Remove('ApiKey')
 
 function Protect-Directory([string]$Directory) {
   # SID literals work on non-English Windows. SYSTEM and Administrators only.
@@ -78,20 +95,6 @@ Copy-Item (Join-Path $AgentSource 'workstation_agent.py') $InstallDir -Force
 Copy-Item (Join-Path $AgentSource 'requirements.txt') $InstallDir -Force
 Invoke-Python $AgentPython @('-m', 'pip', 'install', '--disable-pip-version-check', '-r', (Join-Path $InstallDir 'requirements.txt'))
 $StoredConfig = Join-Path $InstallDir 'config.json'
-if ($ConfigPath) {
-  $Configuration = Get-Content -LiteralPath $ConfigPath -Raw | ConvertFrom-Json
-} else {
-  if (-not $ApiUrl) { $ApiUrl = Read-Host 'HTTPS monitor origin (e.g. https://monitor.example.org)' }
-  $Secret = Read-Host 'Per-machine API token (input hidden)' -AsSecureString
-  $Pointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($Secret)
-  try { $Token = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($Pointer) }
-  finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($Pointer) }
-  $Configuration = [pscustomobject]@{ api_url = $ApiUrl; hostname = $Hostname; api_token = $Token; heartbeat_seconds = 60; collect_username = (-not $HideUsername); allow_local_http = $false }
-  $Token = $null
-}
-if ($Configuration.api_url -notmatch '^https://') { throw 'The workstation installer requires an HTTPS endpoint' }
-$EnrollmentName = [string]$Configuration.hostname
-if ($HideUsername) { $Configuration.collect_username = $false }
 $Configuration | ConvertTo-Json | Set-Content -LiteralPath $StoredConfig -Encoding UTF8
 $Configuration = $null
 Protect-Directory $InstallDir
